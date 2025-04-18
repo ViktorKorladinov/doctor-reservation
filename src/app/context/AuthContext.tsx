@@ -9,7 +9,7 @@ type AuthContextType = {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<AuthResponse>;
-  signUp: (email: string, password: string) => Promise<AuthResponse>;
+  signUp: (email: string, password: string, token: string) => Promise<AuthResponse>;
   signOut: () => Promise<void>;
 };
 
@@ -51,8 +51,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return supabase.auth.signInWithPassword({ email, password });
   };
 
-  const signUp = async (email: string, password: string) => {
-    return supabase.auth.signUp({ email, password });
+  const signUp = async (email: string, password: string, token: string) => {
+    if (!token) throw new Error('Turnstile token not found');
+
+    const res = await fetch('/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, token }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Signup failed');
+
+    return data;
   };
 
   const signOut = async () => {

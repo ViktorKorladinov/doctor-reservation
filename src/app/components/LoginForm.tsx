@@ -3,9 +3,11 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
+import Turnstile from 'react-turnstile';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
+  const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -24,7 +26,7 @@ export default function LoginForm() {
         if (error) throw error;
         router.push('/dashboard');
       } else {
-        const { error } = await signUp(email, password);
+        const { error } = await signUp(email, password, token);
         if (error) throw error;
         setError('Check your email for the confirmation link.');
       }
@@ -40,13 +42,13 @@ export default function LoginForm() {
       <h2 className="text-2xl font-bold mb-6 text-center">
         {mode === 'login' ? 'Sign In' : 'Create Account'}
       </h2>
-      
+
       {error && (
         <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
           <p>{error}</p>
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <label htmlFor="email" className="block mb-2 text-sm font-medium">
@@ -61,7 +63,7 @@ export default function LoginForm() {
             className="w-full p-2 border rounded"
           />
         </div>
-        
+
         <div className="mb-6">
           <label htmlFor="password" className="block mb-2 text-sm font-medium">
             Password
@@ -76,16 +78,20 @@ export default function LoginForm() {
             className="w-full p-2 border rounded"
           />
         </div>
-        
+        {mode === 'signup' ?
+          <Turnstile
+            sitekey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+            onVerify={(token) => setToken(token)}
+          /> : ''}
         <button
           type="submit"
-          disabled={isLoading}
+          disabled={isLoading || (mode=='signup' && token == '')}
           className="w-full py-2 px-4 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
         >
           {isLoading ? 'Processing...' : mode === 'login' ? 'Sign In' : 'Sign Up'}
         </button>
       </form>
-      
+
       <div className="mt-4 text-center">
         <button
           onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
